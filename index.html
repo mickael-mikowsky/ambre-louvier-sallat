@@ -26,7 +26,7 @@
   #entree{position:fixed;inset:0;z-index:50;background:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .6s ease}
   #entree.hide{opacity:0;pointer-events:none}
   #entree button:hover{opacity:1}
-  #entree img{display:block;width:min(66vw,980px);max-height:80vh;object-fit:contain}
+  #entree img{display:block;width:min(74vw,1100px);max-height:80vh;object-fit:contain}
 
   /* ================= COMMUN ================= */
   .title{font-family:var(--helv);font-weight:700;letter-spacing:-.01em;white-space:nowrap}
@@ -58,10 +58,11 @@
 
     #work{position:fixed;inset:0 0 0 300px;display:none;align-items:center;justify-content:center;gap:0}
     #work.on{display:flex}
-    #stage{flex:0 1 auto;width:min(58vw,1000px);height:72vh;display:flex;align-items:center;justify-content:center}
-    #stage img{max-width:100%;max-height:100%;object-fit:contain;display:block;opacity:0;transition:opacity .35s ease}
+    #stage{flex:0 0 auto;display:block;line-height:0}
+    #stage img{display:block;max-height:83vh;max-width:min(66.7vw, calc(100vw - 320px - 2*(9.4vw + 26px)));width:auto;height:auto;opacity:0;transition:opacity .35s ease}
     #stage img.loaded{opacity:1}
-    .arrow{width:60px;height:60px;display:flex;align-items:center;justify-content:center;flex:0 0 60px;margin:0 5vw}
+    .arrow{width:40px;height:60px;display:flex;align-items:center;justify-content:center;flex:0 0 40px}
+    #prev{margin-right:calc(9.4vw - 14.5px)} #next{margin-left:calc(9.4vw - 14.5px)}
     .arrow svg{width:11px;height:22px;stroke:#000;stroke-width:1;fill:none}
     .arrow.off{visibility:hidden}
     #stack{display:none}
@@ -77,7 +78,7 @@
   /* ================= TÉLÉPHONE ================= */
   @media (max-width:820px){
     .d-only{display:none!important}
-    #entree img{width:92vw}
+    #entree img{width:100vw;max-height:75vh}
     #top{position:fixed;top:0;left:0;right:0;z-index:20;text-align:center;padding:30px 16px 14px;background:var(--veil);transition:background .3s}
     #top .title{font-size:25px;display:inline-block}
     #top .serie{font-size:14px;margin-top:9px;min-height:1px}
@@ -118,7 +119,7 @@
 <body data-page="work">
 
 <div id="entree">
-  <button type="button" id="enter" aria-label="Entrer sur le site"><img src="img/entree.jpg" alt="Ambre Louvier Sallat"></button>
+  <button type="button" id="enter" aria-label="Entrer sur le site"><picture><source media="(max-width:820px)" srcset="img/entree-mobile.jpg"><img src="img/entree-desktop.jpg" alt="Ambre Louvier Sallat"></picture></button>
 </div>
 
 <header id="top">
@@ -172,7 +173,7 @@
 
 <script>
 /* ============================================================
-   CONTENU — chaque série pointe vers son dossier img/<id>/
+   CONTENU — chaque série pointe vers son dossier img/<dir>/
    et le nombre de photos (01.jpg, 02.jpg, …).
    Pour ajouter une photo : la déposer dans le dossier (et sa
    version réduite dans m/) puis augmenter "n".
@@ -190,37 +191,34 @@ const WORK = [
       { id:"et-les-autres", dir:"et-les-autres", title:"Et les autres",  n:5 },
   ]},
 ];
-const DEFAULT_SERIES = "quatre-martyrs";
 const EMAIL = "ambre.louviersallat@hotmail.com", INSTA = "@ambarzakh", INSTA_URL = "https://www.instagram.com/ambarzakh/";
 
 /* ---------- données ---------- */
 const all = {};
 WORK.forEach(s => { all[s.id]=s; (s.children||[]).forEach(c => { c.parent=s.id; all[c.id]=c; }); });
 const pad = i => String(i).padStart(2,"0");
-const imgs = s => Array.from({length:s.n||0},(_,i)=>({ big:`img/${s.dir}/${pad(i+1)}.jpg`, small:`img/${s.dir}/m/${pad(i+1)}.jpg` }));
+const imgs = s => s ? Array.from({length:s.n||0},(_,i)=>({ big:`img/${s.dir}/${pad(i+1)}.jpg`, small:`img/${s.dir}/m/${pad(i+1)}.jpg` })) : [];
 
 const mq = matchMedia("(max-width:820px)");
 const isMobile = () => mq.matches;
 
-let state = { page:"work", series:DEFAULT_SERIES, index:0, workOpen:true, open:{}, picked:false };
+/* page : "home" = menu fermé, rien d'affiché ; "work" = une série ; "about" ; "contact" */
+let state = { page:"home", series:null, index:0, workOpen:false, open:{} };
 
-/* ---------- utilitaires ---------- */
 function el(tag, attrs={}, text){ const e=document.createElement(tag); Object.assign(e,attrs); if(text!=null) e.textContent=text; return e; }
 function btn(text, active, onclick){ const b=el("button",{type:"button",className:active?"u":""},text); b.onclick=onclick; return b; }
 
 /* ---------- menu (le même pour ordi et téléphone) ---------- */
 function buildMenu(ul, mobile){
   ul.innerHTML="";
-  const cur = all[state.series], curGroup = cur && cur.parent;
-  const inWork = state.page==="work" && (!mobile || state.picked);
-  const workShown = mobile ? true : (inWork && state.workOpen);
-
+  const inWork = state.page==="work";
   const liW = el("li");
   liW.append(btn("Work", false, () => {
-    if(mobile) return;
-    if(!inWork) go("work"); else { state.workOpen=!state.workOpen; renderMenus(); }
+    state.workOpen = !state.workOpen;
+    if(!mobile && (state.page==="about"||state.page==="contact")){ state.workOpen=true; go("home"); return; }
+    renderMenus();
   }));
-  const sub = el("ul",{className:"sub"+(workShown?" open":"")});
+  const sub = el("ul",{className:"sub"+(state.workOpen?" open":"")});
   WORK.forEach(s => {
     const li = el("li");
     if(s.children){
@@ -252,13 +250,14 @@ function renderMenus(){ buildMenu(document.getElementById("menuD"), false); buil
 /* ---------- ordi : lecteur à flèches ---------- */
 const stage=document.getElementById("stage"), prev=document.getElementById("prev"), next=document.getElementById("next");
 function renderStage(){
-  const list = imgs(all[state.series]); stage.innerHTML="";
-  if(!list.length){ prev.classList.add("off"); next.classList.add("off"); return; }
-  state.index = (state.index + list.length) % list.length;
-  const im = el("img",{src:list[state.index].big, alt:all[state.series].title});
-  im.onload = () => im.classList.add("loaded"); stage.append(im);
-  if(im.complete) im.classList.add("loaded");
+  const list = imgs(all[state.series]);
   prev.classList.toggle("off", list.length<2); next.classList.toggle("off", list.length<2);
+  if(!list.length){ stage.innerHTML=""; return; }
+  state.index = (state.index + list.length) % list.length;
+  // la nouvelle image remplace l'ancienne une fois chargée (les flèches ne sautent pas)
+  const im = el("img",{alt:all[state.series].title}); const token = renderStage.t = (renderStage.t||0)+1;
+  im.onload = () => { if(token!==renderStage.t) return; stage.innerHTML=""; stage.append(im); requestAnimationFrame(()=>im.classList.add("loaded")); };
+  im.src = list[state.index].big;
   if(list.length>1) new Image().src = list[(state.index+1)%list.length].big;
 }
 function step(d){ state.index+=d; renderStage(); }
@@ -283,26 +282,29 @@ function setMenu(open){ document.body.classList.toggle("menu-open", open); }
 
 function go(page, series){
   if(page==="menu"){ setMenu(true); renderMenus(); return; }
-  setMenu(false);
-  state.page = page; state.picked = true;
+  state.page = page;
+  if(page==="home"){ setMenu(isMobile()); }
+  else setMenu(false);
   if(page==="work"){
-    if(series && series!==state.series){ state.series=series; state.index=0; }
+    if(series!==state.series){ state.series=series; state.index=0; }
     state.workOpen=true;
     const p=all[state.series].parent; if(p) state.open[p]=true;
-    window.scrollTo(0,0);
-  } else window.scrollTo(0,0);
-  const h = page==="work" ? state.series : page;
-  if(location.hash.slice(1)!==h) history.replaceState(null,"","#"+h);
+  }
+  window.scrollTo(0,0);
+  const h = page==="work" ? state.series : (page==="home" ? "" : page);
+  if(location.hash.slice(1)!==h) history.replaceState(null,"", h ? "#"+h : location.pathname+location.search);
   render();
 }
 function render(){
-  document.body.dataset.page = state.page;
+  const page = state.page;
+  document.body.dataset.page = page;
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
-  document.getElementById(state.page).classList.add("on");
-  if(state.page==="work"){ renderStage(); renderStack(); }
-  document.getElementById("serieName").textContent = state.page==="work" ? all[state.series].title : "";
-  document.getElementById("mnav").style.display = state.page==="work" ? "none" : "";
-  document.querySelectorAll("#mnav button").forEach(b => b.classList.toggle("u", b.dataset.go===state.page));
+  if(page==="work"||page==="about"||page==="contact") document.getElementById(page).classList.add("on");
+  if(page==="work"){ renderStage(); renderStack(); }
+  document.getElementById("serieName").textContent = page==="work" ? all[state.series].title : "";
+  document.getElementById("mnav").style.display = (page==="about"||page==="contact") ? "" : "none";
+  document.querySelectorAll("#mnav button").forEach(b => b.classList.toggle("u", b.dataset.go===page));
+  if(page==="home" && isMobile()) setMenu(true);
   renderMenus();
 }
 document.querySelectorAll("#mnav button").forEach(b => b.onclick = () => go(b.dataset.go));
@@ -310,16 +312,16 @@ document.querySelectorAll("#mnav button").forEach(b => b.onclick = () => go(b.da
 /* Titre : sur ordi → retour à l'entrée ; sur téléphone → ouvre / ferme le menu (voile blanc) */
 document.getElementById("titleBtn").onclick = () => {
   if(isMobile()){
-    const open = !document.body.classList.contains("menu-open");
-    if(!open && !state.picked) return;
-    setMenu(open); renderMenus();
+    if(state.page==="home") return;
+    setMenu(!document.body.classList.contains("menu-open")); renderMenus();
   } else {
     entree.classList.remove("hide");
-    history.replaceState(null,"",location.pathname+location.search);
+    state.page="home"; state.series=null; state.workOpen=false; state.open={};
+    history.replaceState(null,"",location.pathname+location.search); render();
   }
 };
-/* tap sur le voile (hors menu) → referme */
-document.getElementById("overlay").addEventListener("click", e => { if(e.target.id==="overlay" && booted && state.picked) setMenu(false); });
+/* tap sur le voile (hors menu) → referme, sauf sur le menu d'arrivée */
+document.getElementById("overlay").addEventListener("click", e => { if(e.target.id==="overlay" && state.page!=="home") setMenu(false); });
 
 /* ---------- About ENG / FR ---------- */
 document.querySelectorAll(".lang button").forEach(b => b.onclick = () => {
@@ -327,26 +329,17 @@ document.querySelectorAll(".lang button").forEach(b => b.onclick = () => {
   document.querySelectorAll(".about-txt [data-lang]").forEach(t=>t.classList.toggle("on",t.dataset.lang===b.dataset.set));
 });
 
-/* ---------- Entrée ---------- */
-let booted = false;
+/* ---------- Entrée : on arrive sur le menu fermé ---------- */
 document.getElementById("enter").onclick = () => {
   entree.classList.add("hide");
-  if(isMobile()){
-    // première arrivée : le menu sur fond blanc, avant de choisir une série
-    document.body.dataset.page="work";
-    document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
-    document.getElementById("serieName").textContent="";
-    document.getElementById("mnav").style.display="none";
-    setMenu(true); renderMenus();
-    setTimeout(()=>booted=true, 50);
-  } else { booted=true; go("work", state.series); }
+  state.workOpen=false; state.open={}; go("home");
 };
 
 /* ---------- lien direct (#serie, #about, #contact) ---------- */
 function fromHash(){
   const h = location.hash.slice(1);
-  if(h==="about"||h==="contact"){ entree.classList.add("hide"); booted=true; go(h); return true; }
-  if(all[h] && !all[h].children){ entree.classList.add("hide"); booted=true; go("work", h); return true; }
+  if(h==="about"||h==="contact"){ entree.classList.add("hide"); go(h); return true; }
+  if(all[h] && !all[h].children){ entree.classList.add("hide"); go("work", h); return true; }
   return false;
 }
 window.addEventListener("hashchange", fromHash);
